@@ -3,6 +3,25 @@
 #include "FastSPI_LED.h"
 
 /*==============================================================================*/
+/* LED und Arduino Variablen */
+/*==============================================================================*/
+
+#define NUM_LEDS     113                        // Number of LEDs
+#define PIN          11                         // PIN where LEDs are connected/Used for TM1809/WS2811 chipsets, because they dont use SPI
+#define CHIPSET      CFastSPI_LED::SPI_WS2801   // Chipset of LEDs
+#define MAX_ARGS     10                         // Max Number of command arguments
+#define DATARATE     3                          // Data rate
+#define BAUDRATE     500000                     // Baudrate
+#define SERIAL       Serial                     // Serial port for communication
+#define SERIAL_DEBUG Serial                     // Serial port for debugging
+
+// Sometimes chipsets wire in a backwards sort of way
+struct CRGB { unsigned char b; unsigned char g; unsigned char r; }; //WS 2801
+// struct CRGB { unsigned char g; unsigned char r; unsigned char b; }; //WS 2811
+// struct CRGB { unsigned char b; unsigned char r; unsigned char g; };
+// struct CRGB { unsigned char r; unsigned char g; unsigned char b; };
+
+/*==============================================================================*/
 /* TPM2 Variablen */
 /*==============================================================================*/
 
@@ -30,25 +49,6 @@ enum Mode
    mCommunication,
    mProgram
 };
-
-/*==============================================================================*/
-/* LED und Arduino Variablen */
-/*==============================================================================*/
-
-#define NUM_LEDS     113                        // Number of LEDs
-#define PIN          11                         // PIN where LEDs are connected/Used for TM1809/WS2811 chipsets, because they dont use SPI
-#define CHIPSET      CFastSPI_LED::SPI_WS2801   // Chipset of LEDs
-#define MAX_ARGS     10                         // Max Number of command arguments
-#define DATARATE     3                          // Data rate
-#define BAUDRATE     500000                     // Baudrate
-#define SERIAL       Serial                     // Serial port for communication
-#define SERIAL_DEBUG Serial                     // Serial port for debugging
-
-// Sometimes chipsets wire in a backwards sort of way
-struct CRGB { unsigned char b; unsigned char g; unsigned char r; }; //WS 2801
-// struct CRGB { unsigned char g; unsigned char r; unsigned char b; }; //WS 2811
-// struct CRGB { unsigned char b; unsigned char r; unsigned char g; };
-// struct CRGB { unsigned char r; unsigned char g; unsigned char b; };
 
 struct Data
 {
@@ -384,24 +384,6 @@ void playProgram()
       case  9: police_light_strobo(50);                break;
       case 10: police_lightsALL(20);                   break;
       case 11: police_lightsONE(20);                   break;
-      case 12: sin_bright_wave(20,50);                 break;
-      case 13: wave(100);break;
-         /* 
-            case 13: fade_vertical(240, 60);       break;
-            case 14: rule30(100);                  break;
-            case 15: random_march(30);             break;
-            case 16: rwb_march(50);                break;
-            case 17: radiation(120, 60);           break;
-            case 18: color_loop_vardelay();        break;
-            case 19: white_temps();                break;
-            case 20: sin_bright_wave(240, 35);     break;
-            case 21: pop_horizontal(300, 100);     break;
-            case 22: quad_bright_curve(240, 100);  break;  
-            case 23: flame();                      break;
-            case 24: rainbow_vertical(10, 20);     break;
-            case 25: pacman(100);                  break;
-         */
-
       default: oneColorAll(0,0,0);        break;
    }
 }
@@ -710,76 +692,6 @@ void police_lightsONE(int idelay) { //-POLICE LIGHTS (TWO COLOR SINGLE LED)
   }
 }
 
-
-/*==============================================================================*/
-/* Effect 12: Sinus Wave on LEDs FIX
-/*==============================================================================*/
-
-
-void sin_bright_wave(int ahue, int idelay) {  
- int acolor[3];
- double tcount = 0.0;
- double ibright = 0.0;
- static double idex = 0.0;
- 
- for(int i = 0; i < NUM_LEDS; i++ ) {
-  
-   if (i == 0)
-     idex += 0.1;
-    tcount = tcount + .1 + idex;
-   if (idex > 3.14)
-      idex = 0; 
-   if (tcount > 3.14) 
-     tcount = 0.0;
-   
-   ibright = sin(tcount) + idex;
-   hsv2rgb(ahue, 1, ibright, acolor);
-   data.rgb[i].r = acolor[0]; data.rgb[i].g = acolor[1]; data.rgb[i].b = acolor[2];
- }
- showLeds();
- effectDelay = idelay;
-}           
-
-
-/*==============================================================================*/
-/* Effect 12: Wave on LEDs FIX
-/*==============================================================================*/
-           
-void wave(int idelay)           
-{
-  int wavesize = NUM_LEDS/8; //60
-  int waveheight = wavesize/2; //30
-  double steps = (double)1/waveheight; //0,0333333
-  double start = 0.00;
-  static double offset = 0.00;
-  int colors[3];
-  int dir = 1;
-  
-  for (int i = 0; i < NUM_LEDS; i++)
-  {
-      hsv2rgb(0, 1, start, colors);
-      setLedColor(i, colors[0], colors[1], colors[2]);
-      if (i == 0 && dir == 1)
-        start += offset;
-      else
-      if (i == 0 && dir == 0)
-        start -= offset;
-     
-      if (dir == 1)
-        start += steps;
-      if (dir == 0)
-        start -= steps;
-      if (start >= 1)
-        dir = 0;
-      if (start <= 0)
-        dir = 1;
-  }
-  /*offset += steps;
-  if (offset > 0.5 )
-    offset = 0;*/
-  showLeds();
-  effectDelay = idelay;
-}
 
                        
 /*==============================================================================*/
