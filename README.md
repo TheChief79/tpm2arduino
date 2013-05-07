@@ -6,4 +6,4 @@ Tpm2 Firmware for Arduino
 Requirements
 ============
 
-protohreads library (http://dunkels.com/adam/pt/download.html)
+protohreads library installed in the Arduino libraries directory (http://dunkels.com/adam/pt/download.html)
