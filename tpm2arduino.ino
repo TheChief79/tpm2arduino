@@ -48,7 +48,7 @@ enum Mode
 /* Use this, if u have WS2801 LEDs  or commet it out*/
 #define DATAPIN              11
 #define CLOCKPIN             13
-#define SELECTPIN            10                 //10 for WS2801 on Duemilanove
+#define SELECTPIN            10                 //10 for WS2801 on Duemilanove/ can be another select pin on your board
 #define SPISPEED             9                  //9 for WS2801 on Duemilanove
 WS2801Controller<DATAPIN, CLOCKPIN, SELECTPIN, SPISPEED> LedController;
 
