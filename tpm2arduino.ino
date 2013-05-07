@@ -3,6 +3,33 @@
 #include "FastSPI_LED2.h"
 
 /*==============================================================================*/
+/* LED und Arduino Variablen */
+/*==============================================================================*/
+
+#define NUM_LEDS             113                // Number of LEDs
+#define MAX_ARGS             10                 // Max Number of command arguments
+#define BAUDRATE             500000             // Baudrate
+#define SERIAL               Serial             // Serial port for communication
+#define SERIAL_DEBUG         Serial             // Serial port for debugging
+
+/* Use this, if u have WS2811 LEDs  or commet it out*/
+//#define PIN                  3                  // PIN where LEDs are connected/Used for TM1809/WS2811 chipsets, because they dont use SPI
+//WS2811Controller800Mhz<PIN>  LedController;     // Controller Type
+
+/* Use this, if u have WS2801 LEDs  or commet it out*/
+#define DATAPIN              11
+#define CLOCKPIN             13
+#define SELECTPIN            10                 //10 for WS2801 on Duemilanove/ can be another select pin on your board
+#define SPISPEED             9                  //9 for WS2801 on Duemilanove
+WS2801Controller<DATAPIN, CLOCKPIN, SELECTPIN, SPISPEED> LedController;
+
+struct CRGB { unsigned char b; unsigned char g; unsigned char r; };  //WS2801
+// struct CRGB { unsigned char g; unsigned char r; unsigned char b; };  //WS2811
+// Sometimes chipsets wire in a backwards sort of way
+// struct CRGB { unsigned char b; unsigned char r; unsigned char g; };
+// struct CRGB { unsigned char r; unsigned char g; unsigned char b; };
+
+/*==============================================================================*/
 /* TPM2 Variablen */
 /*==============================================================================*/
 
@@ -30,33 +57,6 @@ enum Mode
    mCommunication,
    mProgram
 };
-
-/*==============================================================================*/
-/* LED und Arduino Variablen */
-/*==============================================================================*/
-
-#define NUM_LEDS             113                // Number of LEDs
-#define MAX_ARGS             10                 // Max Number of command arguments
-#define BAUDRATE             500000             // Baudrate
-#define SERIAL               Serial             // Serial port for communication
-#define SERIAL_DEBUG         Serial             // Serial port for debugging
-
-/* Use this, if u have WS2811 LEDs  or commet it out*/
-//#define PIN                  3                  // PIN where LEDs are connected/Used for TM1809/WS2811 chipsets, because they dont use SPI
-//WS2811Controller800Mhz<PIN>  LedController;     // Controller Type
-
-/* Use this, if u have WS2801 LEDs  or commet it out*/
-#define DATAPIN              11
-#define CLOCKPIN             13
-#define SELECTPIN            10                 //10 for WS2801 on Duemilanove/ can be another select pin on your board
-#define SPISPEED             9                  //9 for WS2801 on Duemilanove
-WS2801Controller<DATAPIN, CLOCKPIN, SELECTPIN, SPISPEED> LedController;
-
-
-struct CRGB { unsigned char g; unsigned char r; unsigned char b; };
-// Sometimes chipsets wire in a backwards sort of way
-// struct CRGB { unsigned char b; unsigned char r; unsigned char g; };
-// struct CRGB { unsigned char r; unsigned char g; unsigned char b; };
 
 struct Data
 {
@@ -371,33 +371,10 @@ void setProgram()
 
 void playProgram()
 {
-  /*
-    9c = Startbyte
-    c0 = Command Byte
-    00 = fs high
-    04 = fs low
-    00 = command
-    
-    ..
-    xx = args
-    ..
-    36 = Endbyte
-  
-  
-  PP = Programm
-  RR = Rot
-  GG = Grün
-  BB = Blau
-  
-  SH = Effect Speed High bit
-  SL = Effect Speed Low bit
-  
-  */
-  
    switch (program)
    {
-      case  0: oneColorAll(args[0],args[1],args[2]);   break;                                    /* 9c c0 00 04 PP RR GG BB 36 */
-      case  1: loopRGBPixel(50); break;
+      case  0: oneColorAll(args[0],args[1],args[2]);   break;
+      case  1: loopRGBPixel(50);                       break;
       case  2: rainbow_fade(20);                       break;
       case  3: rainbow_loop(20);                       break;
       case  4: random_burst(20);                       break;
@@ -410,22 +387,6 @@ void playProgram()
       case 11: police_lightsONE(20);                   break;
       /*case 12: sin_bright_wave(20,50);                 break;
       case 13: wave(100);break;*/
-         /* 
-            case 13: fade_vertical(240, 60);       break;
-            case 14: rule30(100);                  break;
-            case 15: random_march(30);             break;
-            case 16: rwb_march(50);                break;
-            case 17: radiation(120, 60);           break;
-            case 18: color_loop_vardelay();        break;
-            case 19: white_temps();                break;
-            case 20: sin_bright_wave(240, 35);     break;
-            case 21: pop_horizontal(300, 100);     break;
-            case 22: quad_bright_curve(240, 100);  break;  
-            case 23: flame();                      break;
-            case 24: rainbow_vertical(10, 20);     break;
-            case 25: pacman(100);                  break;
-         */
-
       default: oneColorAll(0,0,0);        break;
    }
 }
