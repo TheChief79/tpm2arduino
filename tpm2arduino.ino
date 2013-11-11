@@ -18,7 +18,7 @@
 
 #define DATA_PIN                  3             // PIN where LEDs are connected/Used for TM1809/WS2811 chipsets, because they dont use SPI
 //#define CLOCK_PIN                4               // used for some SPI chipsets, e.g. WS2801 
-
+#define BRIGHTNESS                100           // define global brightness 0..100
 
 
 /*==============================================================================*/
@@ -129,8 +129,9 @@ void setup()
    // FastLED.addLeds<SM16716, DATA_PIN, CLOCK_PIN, RGB>(leds, NUM_LEDS);
    // FastLED.addLeds<LPD8806, DATA_PIN, CLOCK_PIN, RGB>(leds, NUM_LEDS);
    
-   FastLED.addLeds<WS2811, DATA_PIN, RGB>(data.rgb, NUM_LEDS);
-
+   FastLED.addLeds<WS2811, DATA_PIN, GRB>(data.rgb, NUM_LEDS);
+   FastLED.setBrightness(BRIGHTNESS);
+   
    oneColorAll(10,10,10);
 #ifdef DEBUG
    SERIAL_DEBUG.begin(BAUDRATE);
