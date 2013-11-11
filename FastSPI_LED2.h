@@ -5,191 +5,143 @@
 #include "fastpin.h"
 #include "fastspi.h"
 #include "clockless.h"
+#include "lib8tion.h"
+#include "hsv2rgb.h"
+#include "chipsets.h"
+#include "dmx.h"
 
+enum ESPIChipsets {
+	LPD8806,
+	WS2801,
+	SM16716
+};
 
-// Class to ensure that a minimum amount of time has kicked since the last time run - and delay if not enough time has passed yet
-// this should make sure that chipsets that have 
-template<int WAIT> class CMinWait {
-	long mLastMicros;
+enum EClocklessChipsets {
+	DMX,
+	TM1809,
+	TM1804,
+	TM1803,
+	WS2811,
+	WS2812,
+	WS2812B,
+	WS2811_400,
+	NEOPIXEL,
+	UCS1903
+};
+
+#define NUM_CONTROLLERS 8
+
+class CFastSPI_LED2 {
+	struct CControllerInfo { 
+		CLEDController *pLedController;
+		const struct CRGB *pLedData;
+		int nLeds;
+		int nOffset;
+	};
+
+	CControllerInfo	m_Controllers[NUM_CONTROLLERS];
+	int m_nControllers;
+	uint8_t m_nScale;
+
 public:
-	CMinWait() { mLastMicros = 0; }
+	CFastSPI_LED2();
 
-	void wait() { 
-		long diff = micros() - mLastMicros;
-		if(diff < WAIT) { 
-			delayMicroseconds(WAIT - diff);
+	CLEDController *addLeds(CLEDController *pLed, const struct CRGB *data, int nLedsOrOffset, int nLedsIfOffset = 0);
+
+	template<ESPIChipsets CHIPSET,  uint8_t DATA_PIN, uint8_t CLOCK_PIN > CLEDController *addLeds(const struct CRGB *data, int nLedsOrOffset, int nLedsIfOffset = 0) { 
+		switch(CHIPSET) { 
+			case LPD8806: return addLeds(new LPD8806Controller<DATA_PIN, CLOCK_PIN>(), data, nLedsOrOffset, nLedsIfOffset);
+			case WS2801: return addLeds(new WS2801Controller<DATA_PIN, CLOCK_PIN>(), data, nLedsOrOffset, nLedsIfOffset);
+			case SM16716: return addLeds(new SM16716Controller<DATA_PIN, CLOCK_PIN>(), data, nLedsOrOffset, nLedsIfOffset);
 		}
 	}
 
-	void mark() { mLastMicros = micros(); }
+	template<ESPIChipsets CHIPSET,  uint8_t DATA_PIN, uint8_t CLOCK_PIN, EOrder RGB_ORDER > CLEDController *addLeds(const struct CRGB *data, int nLedsOrOffset, int nLedsIfOffset = 0) { 
+		switch(CHIPSET) { 
+			case LPD8806: return addLeds(new LPD8806Controller<DATA_PIN, CLOCK_PIN, RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
+			case WS2801: return addLeds(new WS2801Controller<DATA_PIN, CLOCK_PIN, RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
+			case SM16716: return addLeds(new SM16716Controller<DATA_PIN, CLOCK_PIN, RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
+		}
+	}
+	
+	template<ESPIChipsets CHIPSET,  uint8_t DATA_PIN, uint8_t CLOCK_PIN, EOrder RGB_ORDER, uint8_t SPI_DATA_RATE > CLEDController *addLeds(const struct CRGB *data, int nLedsOrOffset, int nLedsIfOffset = 0) { 
+		switch(CHIPSET) { 
+			case LPD8806: return addLeds(new LPD8806Controller<DATA_PIN, CLOCK_PIN, RGB_ORDER, SPI_DATA_RATE>(), data, nLedsOrOffset, nLedsIfOffset);
+			case WS2801: return addLeds(new WS2801Controller<DATA_PIN, CLOCK_PIN, RGB_ORDER, SPI_DATA_RATE>(), data, nLedsOrOffset, nLedsIfOffset);
+			case SM16716: return addLeds(new SM16716Controller<DATA_PIN, CLOCK_PIN, RGB_ORDER, SPI_DATA_RATE>(), data, nLedsOrOffset, nLedsIfOffset);
+		}
+	}
+
+#ifdef SPI_DATA
+	template<ESPIChipsets CHIPSET> CLEDController *addLeds(const struct CRGB *data, int nLedsOrOffset, int nLedsIfOffset = 0) { 
+		return addLeds<CHIPSET, SPI_DATA, SPI_CLOCK, RGB>(data, nLedsOrOffset, nLedsIfOffset);
+	}	
+
+	template<ESPIChipsets CHIPSET, EOrder RGB_ORDER> CLEDController *addLeds(const struct CRGB *data, int nLedsOrOffset, int nLedsIfOffset = 0) { 
+		return addLeds<CHIPSET, SPI_DATA, SPI_CLOCK, RGB_ORDER>(data, nLedsOrOffset, nLedsIfOffset);
+	}	
+
+	template<ESPIChipsets CHIPSET, EOrder RGB_ORDER, uint8_t SPI_DATA_RATE> CLEDController *addLeds(const struct CRGB *data, int nLedsOrOffset, int nLedsIfOffset = 0) { 
+		return addLeds<CHIPSET, SPI_DATA, SPI_CLOCK, RGB_ORDER, SPI_DATA_RATE>(data, nLedsOrOffset, nLedsIfOffset);
+	}	
+
+#endif
+
+	template<EClocklessChipsets CHIPSET, uint8_t DATA_PIN> 
+	CLEDController *addLeds(const struct CRGB *data, int nLedsOrOffset, int nLedsIfOffset = 0) {
+		switch(CHIPSET) { 
+#ifdef FASTSPI_USE_DMX_SIMPLE
+			case DMX: return addLeds(new DMXController<DATA_PIN>(), data, nLedsOrOffset, nLedsIfOffset);
+#endif
+			case TM1804:
+			case TM1809: return addLeds(new TM1809Controller800Khz<DATA_PIN>(), data, nLedsOrOffset, nLedsIfOffset);
+			case TM1803: return addLeds(new TM1803Controller400Khz<DATA_PIN>(), data, nLedsOrOffset, nLedsIfOffset);
+			case UCS1903: return addLeds(new UCS1903Controller400Khz<DATA_PIN>(), data, nLedsOrOffset, nLedsIfOffset);
+			case WS2812: 
+			case WS2812B:
+			case NEOPIXEL:
+			case WS2811: return addLeds(new WS2811Controller800Khz<DATA_PIN>(), data, nLedsOrOffset, nLedsIfOffset);
+			case WS2811_400: return addLeds(new WS2811Controller400Khz<DATA_PIN>(), data, nLedsOrOffset, nLedsIfOffset);
+		}
+	}
+
+	template<EClocklessChipsets CHIPSET, uint8_t DATA_PIN, EOrder RGB_ORDER> 
+	CLEDController *addLeds(const struct CRGB *data, int nLedsOrOffset, int nLedsIfOffset = 0) {
+		switch(CHIPSET) { 
+#ifdef FASTSPI_USE_DMX_SIMPLE
+			case DMX: return addLeds(new DMXController<DATA_PIN, RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
+#endif
+			case TM1809: return addLeds(new TM1809Controller800Khz<DATA_PIN, RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
+			case TM1803: return addLeds(new TM1803Controller400Khz<DATA_PIN, RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
+			case UCS1903: return addLeds(new UCS1903Controller400Khz<DATA_PIN, RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
+			case WS2812: 
+			case WS2812B:
+			case NEOPIXEL:
+			case WS2811: return addLeds(new WS2811Controller800Khz<DATA_PIN, RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
+			case WS2811_400: return addLeds(new WS2811Controller400Khz<DATA_PIN, RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
+		}
+	}
+
+	void setBrightness(uint8_t scale) { m_nScale = scale; }
+	uint8_t getBrightness() { return m_nScale; }
+
+	/// Update all our controllers with the current led colors, using the passed in brightness
+	void show(uint8_t scale);
+
+	/// Update all our controllers with the current led colors
+	void show() { show(m_nScale); }
+
+	void clear(boolean includeLedData = true);
+
+	void showColor(const struct CRGB & color, uint8_t scale);
+
+	void showColor(const struct CRGB & color) { showColor(color, m_nScale); }
+
 };
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// LPD8806 controller class - takes data/clock/select pin values (N.B. should take an SPI definition?)
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-class LPD8806_ADJUST {
-public:
-	// LPD8806 spec wants the high bit of every rgb data byte sent out to be set.
-	__attribute__((always_inline)) inline static uint8_t adjust(register uint8_t data) { return (data>>1) | 0x80; }
-};
-
-template <uint8_t DATA_PIN, uint8_t CLOCK_PIN, uint8_t SELECT_PIN, uint8_t SPI_SPEED = 2 >
-class LPD8806Controller : public CLEDController {
-	typedef SPIOutput<DATA_PIN, CLOCK_PIN, SPI_SPEED> SPI;
-	SPI mSPI;
-	OutputPin selectPin;
-
-	void clearLine(int nLeds) { 
-		int n = ((nLeds  + 63) >> 6);
-		mSPI.writeBytesValue(0, n);
-	}
-public:
-	LPD8806Controller() : selectPin(SELECT_PIN) {}
-	virtual void init() { 
-		mSPI.setSelect(&selectPin);
-		mSPI.init();
-
-		// push out 1000 leds worth of 0's to clear out the line
-		mSPI.writeBytesValue(0x80, 1000);
-		clearLine(1000);
-	}
-
-	virtual void showRGB(uint8_t *data, int nLeds) {
-		mSPI.template writeBytes3<LPD8806_ADJUST>(data, nLeds * 3);
-		clearLine(nLeds);
-	}
-
-#ifdef SUPPORT_ARGB
-	virtual void showARGB(uint8_t *data, int nLeds) {
-		mSPI.template writeBytes3<1, LPD8806_ADJUST>(data, nLeds * 4);
-		clearLine(nLeds);
-	}
-#endif
-};
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// WS2801 definition - takes data/clock/select pin values (N.B. should take an SPI definition?)
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-template <uint8_t DATA_PIN, uint8_t CLOCK_PIN, uint8_t SELECT_PIN, uint8_t SPI_SPEED = 3>
-class WS2801Controller : public CLEDController {
-	typedef SPIOutput<DATA_PIN, CLOCK_PIN, SPI_SPEED> SPI;
-	SPI mSPI;
-	OutputPin selectPin;
-	CMinWait<24>  mWaitDelay;
-public:
-	WS2801Controller() : selectPin(SELECT_PIN) {}
-
-	virtual void init() { 
-		mSPI.setSelect(&selectPin);
-		mSPI.init();
-	    // 0 out as much as we can on the line
-	    mSPI.writeBytesValue(0, 1000);
-	    mWaitDelay.mark();
-	}
-
-	virtual void showRGB(uint8_t *data, int nLeds) {
-		// mWaitDelay.wait();
-		mSPI.writeBytes3(data, nLeds * 3);
-		// mWaitDelay.mark();
-	}
-
-#ifdef SUPPORT_ARGB
-	virtual void showARGB(uint8_t *data, int nLeds) {
-		mWaitDelay.wait();
-		mSPI.template writeBytes3<1>(data, nLeds * 4);
-		mWaitDelay.mark();
-	}
-#endif
-};
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// SM16716 definition - takes data/clock/select pin values (N.B. should take an SPI definition?)
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-template <uint8_t DATA_PIN, uint8_t CLOCK_PIN, uint8_t SELECT_PIN, uint8_t SPI_SPEED = 0>
-class SM16716Controller : public CLEDController {
-#if defined(__MK20DX128__)   // for Teensy 3.0
-	// Have to force software SPI for the teensy 3.0 right now because it doesn't deal well
-	// with flipping in and out of hardware SPI
-	typedef SPIOutput<DATA_PIN, CLOCK_PIN, SPI_SPEED> SPI;
-#else
-	typedef SPIOutput<DATA_PIN, CLOCK_PIN, SPI_SPEED> SPI;
-#endif
-	SPI mSPI;
-	OutputPin selectPin;
-public:
-	SM16716Controller() : selectPin(SELECT_PIN) {}
-
-	virtual void init() { 
-		mSPI.setSelect(&selectPin);
-		mSPI.init();
-	}
-
-	virtual void showRGB(uint8_t *data, int nLeds) {
-		// Write out 50 zeros to the spi line (6 blocks of 8 followed by two single bit writes)
-		mSPI.writeBytesValue(0, 6);
-		mSPI.template writeBit<0>(0);
-		mSPI.template writeBit<0>(0);
-
-		// Make sure the FLAG_START_BIT flag is set to ensure that an extra 1 bit is sent at the start
-		// of each triplet of bytes for rgb data
-		mSPI.template writeBytes3<FLAG_START_BIT>(data, nLeds * 3);
-	}
-
-#ifdef SUPPORT_ARGB
-	virtual void showARGB(uint8_t *data, int nLeds) {
-		mSPI.writeBytesValue(0, 6);
-		mSPI.template writeBit<0>(0);
-		mSPI.template writeBit<0>(0);
-
-		// Make sure the FLAG_START_BIT flag is set to ensure that an extra 1 bit is sent at the start
-		// of each triplet of bytes for rgb data
-		mSPI.template writeBytes3<1 | FLAG_START_BIT>(data, nLeds * 4);
-	}
-#endif
-};
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Clockless template instantiations
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// 500ns, 1500ns, 500ns
-template <uint8_t DATA_PIN>
-class UCS1903Controller400Mhz : public ClocklessController<DATA_PIN, NS(500), NS(1500), NS(500)> {};
-#if NO_TIME(500, 1500, 500) 
-#warning "No enough clock cycles available for the UCS103"
-#endif
-
-// 312.5ns, 312.5ns, 325ns
-template <uint8_t DATA_PIN>
-class TM1809Controller800Mhz : public ClocklessController<DATA_PIN, NS(350), NS(350), NS(550)> {};
-#if NO_TIME(350, 350, 550) 
-#warning "No enough clock cycles available for the UCS103"
-#endif
-
-// 350n, 350ns, 550ns
-template <uint8_t DATA_PIN>
-class WS2811Controller800Mhz : public ClocklessController<DATA_PIN, NS(320), NS(320), NS(550)> {};
-#if NO_TIME(320, 320, 550) 
-#warning "No enough clock cycles available for the UCS103"
-#endif
-
-// 750NS, 750NS, 750NS
-template <uint8_t DATA_PIN>
-class TM1803Controller400Mhz : public ClocklessController<DATA_PIN, NS(750), NS(750), NS(750)> {};
-#if NO_TIME(750, 750, 750) 
-#warning "No enough clock cycles available for the UCS103"
-#endif
+extern CFastSPI_LED2 & FastSPI_LED;
+extern CFastSPI_LED2 & FastSPI_LED2;
+extern CFastSPI_LED2 & FastLED;
+extern CFastSPI_LED2 LEDS;
 
 #endif

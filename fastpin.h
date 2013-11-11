@@ -6,13 +6,36 @@
 // Arduino.h needed for convinience functions digitalPinToPort/BitMask/portOutputRegister and the pinMode methods.
 #include<Arduino.h>
 
+#define NO_PIN 255 
+
+// Class to ensure that a minimum amount of time has kicked since the last time run - and delay if not enough time has passed yet
+// this should make sure that chipsets that have 
+template<int WAIT> class CMinWait {
+	long mLastMicros;
+public:
+	CMinWait() { mLastMicros = 0; }
+
+	void wait() { 
+		long diff = micros() - mLastMicros;
+		if(diff < WAIT) { 
+			delayMicroseconds(WAIT - diff);
+		}
+	}
+
+	void mark() { mLastMicros = micros(); }
+};
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Pin access class - needs to tune for various platforms (naive fallback solution?)
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+#define _CYCLES(_PIN) (((_PIN >= 62 ) || (_PIN>=42 && _PIN<=49) || (_PIN>=14 && _PIN <=17) || (_PIN>=6 && _PIN <=9)) ? 2 : 1)
+#else
 #define _CYCLES(_PIN) ((_PIN >= 24) ? 2 : 1)
+#endif
 
 class Selectable {
 public:
@@ -235,19 +258,29 @@ typedef volatile uint32_t * ptr_reg32_t;
 // built on, then much higher speed access will be possible, namely with direct GPIO register accesses.
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+#if defined(FORCE_SOFTWARE_PINS)
+#warning "Softwrae pin support forced pin access will be slightly slower.  See fastpin.h for info."
+#define NO_HARDWARE_PIN_SUPPORT
 
-#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
+#elif defined(__AVR_ATtiny85__) 
+_IO(B);
+
+_DEFPIN_AVR(0, 0x01, B); _DEFPIN_AVR(1, 0x02, B); _DEFPIN_AVR(2, 0x04, B); _DEFPIN_AVR(3, 0x08, B);
+_DEFPIN_AVR(4, 0x10, B); _DEFPIN_AVR(5, 0x20, B);
+
+#elif defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
 // Accelerated port definitions for arduino avrs
 _IO(D); _IO(B); _IO(C);
 _DEFPIN_AVR( 0, 0x01, D); _DEFPIN_AVR( 1, 0x02, D); _DEFPIN_AVR( 2, 0x04, D); _DEFPIN_AVR( 3, 0x08, D);
 _DEFPIN_AVR( 4, 0x10, D); _DEFPIN_AVR( 5, 0x20, D); _DEFPIN_AVR( 6, 0x40, D); _DEFPIN_AVR( 7, 0x80, D);
 _DEFPIN_AVR( 8, 0x01, B); _DEFPIN_AVR( 9, 0x02, B); _DEFPIN_AVR(10, 0x04, B); _DEFPIN_AVR(11, 0x08, B);
-_DEFPIN_AVR(12, 0x10, B); _DEFPIN_AVR(13, 0x20, B); _DEFPIN_AVR(14, 0x40, B); _DEFPIN_AVR(15, 0x80, B);
-_DEFPIN_AVR(16, 0x01, C); _DEFPIN_AVR(17, 0x02, C); _DEFPIN_AVR(18, 0x04, C); _DEFPIN_AVR(19, 0x08, C);
-_DEFPIN_AVR(20, 0x10, C); _DEFPIN_AVR(21, 0x20, C); _DEFPIN_AVR(22, 0x40, C); _DEFPIN_AVR(23, 0x80, C);
+_DEFPIN_AVR(12, 0x10, B); _DEFPIN_AVR(13, 0x20, B); _DEFPIN_AVR(14, 0x01, C); _DEFPIN_AVR(15, 0x02, C);
+_DEFPIN_AVR(16, 0x04, C); _DEFPIN_AVR(17, 0x08, C); _DEFPIN_AVR(18, 0x10, C); _DEFPIN_AVR(19, 0x20, C);
 
 #define SPI_DATA 11
 #define SPI_CLOCK 13
+#define SPI_SELECT 10
+#define AVR_HARDWARE_SPI
 
 #elif defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
 // megas
@@ -275,6 +308,8 @@ _DEFPIN_AVR(68, 64, K); _DEFPIN_AVR(69, 128, K);
 
 #define SPI_DATA 51
 #define SPI_CLOCK 52
+#define SPI_SELECT 53
+#define AVR_HARDWARE_SPI
 
 // Leonardo, teensy, blinkm
 #elif defined(__AVR_ATmega32U4__) && defined(CORE_TEENSY)
@@ -291,6 +326,8 @@ _DEFPIN_AVR(20, 2, F); _DEFPIN_AVR(21, 1, F); _DEFPIN_AVR(22, 16, D); _DEFPIN_AV
 
 #define SPI_DATA 2
 #define SPI_CLOCK 1
+#define SPI_SELECT 3
+#define AVR_HARDWARE_SPI
 
 #elif defined(__AVR_AT90USB646__) || defined(__AVR_AT90USB1286__)
 // teensy++ 2 defs
@@ -312,6 +349,8 @@ _DEFPIN_AVR(44, 64, F); _DEFPIN_AVR(45, 128, F);
 
 #define SPI_DATA 22
 #define SPI_CLOCK 21
+#define SPI_SELECT 20
+#define AVR_HARDWARE_SPI
 
 #elif defined(__AVR_ATmega32U4__)
 
@@ -319,14 +358,15 @@ _DEFPIN_AVR(44, 64, F); _DEFPIN_AVR(45, 128, F);
 _IO(B); _IO(C); _IO(D); _IO(E); _IO(F); 
 
 _DEFPIN_AVR(0, 4, D); _DEFPIN_AVR(1, 8, D); _DEFPIN_AVR(2, 2, D); _DEFPIN_AVR(3, 1, D); 
-_DEFPIN_AVR(4, 16, D); _DEFPIN_AVR(5, 64, C); _DEFPIN_AVR(6, 127, D); _DEFPIN_AVR(7, 64, E); 
+_DEFPIN_AVR(4, 16, D); _DEFPIN_AVR(5, 64, C); _DEFPIN_AVR(6, 128, D); _DEFPIN_AVR(7, 64, E); 
 _DEFPIN_AVR(8, 16, B); _DEFPIN_AVR(9, 32, B); _DEFPIN_AVR(10, 64, B); _DEFPIN_AVR(11, 128, B); 
-_DEFPIN_AVR(12, 64, D); _DEFPIN_AVR(13, 127, C); _DEFPIN_AVR(14, 8, B); _DEFPIN_AVR(15, 2, B); 
+_DEFPIN_AVR(12, 64, D); _DEFPIN_AVR(13, 128, C); _DEFPIN_AVR(14, 8, B); _DEFPIN_AVR(15, 2, B); 
 _DEFPIN_AVR(16, 4, B); _DEFPIN_AVR(17, 1, B); _DEFPIN_AVR(18, 128, F); _DEFPIN_AVR(19, 64, F); 
 _DEFPIN_AVR(20, 32, F); _DEFPIN_AVR(21, 16, F); _DEFPIN_AVR(22, 2, F); _DEFPIN_AVR(23, 0, F); 
 
 #define SPI_DATA 16
 #define SPI_CLOCK 15
+#define AVR_HARDWARE_SPI
 
 #elif defined(__MK20DX128__) && defined(CORE_TEENSY)
 
@@ -344,6 +384,35 @@ _DEFPIN_ARM(32, 18, B); _DEFPIN_ARM(33, 4, A);
 
 #define SPI_DATA 11
 #define SPI_CLOCK 13
+#define ARM_HARDWARE_SPI
+
+#elif defined(__SAM3X8E__)
+
+DUE_IO32(A);
+DUE_IO32(B);
+DUE_IO32(C);
+DUE_IO32(D);
+
+_DEFPIN_DUE(0, 8, A); _DEFPIN_DUE(1, 9, A); _DEFPIN_DUE(2, 25, B); _DEFPIN_DUE(3, 28, C);
+_DEFPIN_DUE(4, 26, C); _DEFPIN_DUE(5, 25, C); _DEFPIN_DUE(6, 24, C); _DEFPIN_DUE(7, 23, C);
+_DEFPIN_DUE(8, 22, C); _DEFPIN_DUE(9, 21, C); _DEFPIN_DUE(10, 29, C); _DEFPIN_DUE(11, 7, D);
+_DEFPIN_DUE(12, 8, D); _DEFPIN_DUE(13, 27, B); _DEFPIN_DUE(14, 4, D); _DEFPIN_DUE(15, 5, D);
+_DEFPIN_DUE(16, 13, A); _DEFPIN_DUE(17, 12, A); _DEFPIN_DUE(18, 11, A); _DEFPIN_DUE(19, 10, A);
+_DEFPIN_DUE(20, 12, B); _DEFPIN_DUE(21, 13, B); _DEFPIN_DUE(22, 26, B); _DEFPIN_DUE(23, 14, A);
+_DEFPIN_DUE(24, 15, A); _DEFPIN_DUE(25, 0, D); _DEFPIN_DUE(26, 1, D); _DEFPIN_DUE(27, 2, D);
+_DEFPIN_DUE(28, 3, D); _DEFPIN_DUE(29, 6, D); _DEFPIN_DUE(30, 9, D); _DEFPIN_DUE(31, 7, A);
+_DEFPIN_DUE(32, 10, D); _DEFPIN_DUE(33, 1, C); _DEFPIN_DUE(34, 2, C); _DEFPIN_DUE(35, 3, C);
+_DEFPIN_DUE(36, 4, C); _DEFPIN_DUE(37, 5, C); _DEFPIN_DUE(38, 6, C); _DEFPIN_DUE(39, 7, C);
+_DEFPIN_DUE(40, 8, C); _DEFPIN_DUE(41, 9, C); _DEFPIN_DUE(42, 19, A); _DEFPIN_DUE(43, 20, A);
+_DEFPIN_DUE(44, 19, C); _DEFPIN_DUE(45, 18, C); _DEFPIN_DUE(46, 17, C); _DEFPIN_DUE(47, 16, C);
+_DEFPIN_DUE(48, 15, C); _DEFPIN_DUE(49, 14, C); _DEFPIN_DUE(50, 13, C); _DEFPIN_DUE(51, 12, C);
+_DEFPIN_DUE(52, 21, B); _DEFPIN_DUE(53, 14, B); _DEFPIN_DUE(54, 16, A); _DEFPIN_DUE(55, 24, A);
+_DEFPIN_DUE(56, 23, A); _DEFPIN_DUE(57, 22, A); _DEFPIN_DUE(58, 6, A); _DEFPIN_DUE(59, 4, A);
+_DEFPIN_DUE(60, 3, A); _DEFPIN_DUE(61, 2, A); _DEFPIN_DUE(62, 17, B); _DEFPIN_DUE(63, 18, B);
+_DEFPIN_DUE(64, 19, B); _DEFPIN_DUE(65, 20, B); _DEFPIN_DUE(66, 15, B); _DEFPIN_DUE(67, 16, B);
+_DEFPIN_DUE(68, 1, A); _DEFPIN_DUE(69, 0, A); _DEFPIN_DUE(70, 17, A); _DEFPIN_DUE(71, 18, A);
+_DEFPIN_DUE(72, 30, C); _DEFPIN_DUE(73, 21, A); _DEFPIN_DUE(74, 25, A); _DEFPIN_DUE(75, 26, A);
+_DEFPIN_DUE(76, 27, A); _DEFPIN_DUE(77, 28, A); _DEFPIN_DUE(78, 23, B);
 
 #else
 

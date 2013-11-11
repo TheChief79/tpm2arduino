@@ -1,33 +1,25 @@
 
 #include <pt.h>
+#define FORCE_SOFTWARE_SPI
+#define FORCE_SOFTWARE_PINS
 #include "FastSPI_LED2.h"
 
 /*==============================================================================*/
 /* LED und Arduino Variablen */
 /*==============================================================================*/
 
-#define NUM_LEDS             113                // Number of LEDs
+#define NUM_LEDS             214                  // Number of LEDs
 #define MAX_ARGS             10                 // Max Number of command arguments
 #define BAUDRATE             500000             // Baudrate
 #define SERIAL               Serial             // Serial port for communication
 #define SERIAL_DEBUG         Serial             // Serial port for debugging
 
-/* Use this, if u have WS2811 LEDs  or commet it out*/
-//#define PIN                  3                  // PIN where LEDs are connected/Used for TM1809/WS2811 chipsets, because they dont use SPI
-//WS2811Controller800Mhz<PIN>  LedController;     // Controller Type
+//choose your LED chipset in void setup()
 
-/* Use this, if u have WS2801 LEDs  or commet it out*/
-#define DATAPIN              11
-#define CLOCKPIN             13
-#define SELECTPIN            10                 //10 for WS2801 on Duemilanove/ can be another select pin on your board
-#define SPISPEED             9                  //9 for WS2801 on Duemilanove
-WS2801Controller<DATAPIN, CLOCKPIN, SELECTPIN, SPISPEED> LedController;
+#define DATA_PIN                  3             // PIN where LEDs are connected/Used for TM1809/WS2811 chipsets, because they dont use SPI
+//#define CLOCK_PIN                4               // used for some SPI chipsets, e.g. WS2801 
 
-struct CRGB { unsigned char b; unsigned char g; unsigned char r; };  //WS2801
-// struct CRGB { unsigned char g; unsigned char r; unsigned char b; };  //WS2811
-// Sometimes chipsets wire in a backwards sort of way
-// struct CRGB { unsigned char b; unsigned char r; unsigned char g; };
-// struct CRGB { unsigned char r; unsigned char g; unsigned char b; };
+
 
 /*==============================================================================*/
 /* TPM2 Variablen */
@@ -64,7 +56,7 @@ struct Data
    uint8_t type;
    uint16_t fs;
    uint8_t command;
-   struct CRGB rgb[NUM_LEDS];
+   CRGB rgb[NUM_LEDS];
 } data;
 
 byte args[MAX_ARGS];
@@ -118,9 +110,28 @@ void setup()
 {
      
    memset(data.rgb, 0, sizeof(struct CRGB) * NUM_LEDS); 
-   LedController.init();
-   oneColorAll(155,0,0);
 
+   // Uncomment one of the following lines for your leds arrangement.
+   // FastLED.addLeds<TM1803, DATA_PIN, RGB>(leds, NUM_LEDS);
+   // FastLED.addLeds<TM1804, DATA_PIN, RGB>(leds, NUM_LEDS);
+   // FastLED.addLeds<TM1809, DATA_PIN, RGB>(leds, NUM_LEDS);
+   // FastSPI_LED2.addLeds<WS2811, DATA_PIN, GRB>(leds+18, NUM_LEDS/3);
+   // FastLED.addLeds<WS2811, 8, RGB>(leds + 225, NUM_LEDS/4);
+   // FastLED.addLeds<WS2812, DATA_PIN, RGB>(leds, NUM_LEDS);
+   // FastLED.addLeds<WS2812B, DATA_PIN, RGB>(leds, NUM_LEDS);
+   // FastLED.addLeds<NEOPIXEL, DATA_PIN, RGB>(leds, NUM_LEDS);
+   // FastLED.addLeds<WS2811_400, DATA_PIN, RGB>(leds, NUM_LEDS);
+   // FastLED.addLeds<UCS1903, DATA_PIN, RGB>(leds, NUM_LEDS);
+   // FastLED.addLeds<WS2801, RGB>(leds, NUM_LEDS);
+   // FastLED.addLeds<SM16716, RGB>(leds, NUM_LEDS);
+   // FastLED.addLeds<LPD8806, RGB>(leds, NUM_LEDS);
+   // FastLED.addLeds<WS2801, DATA_PIN, CLOCK_PIN, RGB>(leds, NUM_LEDS);
+   // FastLED.addLeds<SM16716, DATA_PIN, CLOCK_PIN, RGB>(leds, NUM_LEDS);
+   // FastLED.addLeds<LPD8806, DATA_PIN, CLOCK_PIN, RGB>(leds, NUM_LEDS);
+   
+   FastLED.addLeds<WS2811, DATA_PIN, RGB>(data.rgb, NUM_LEDS);
+
+   oneColorAll(10,10,10);
 #ifdef DEBUG
    SERIAL_DEBUG.begin(BAUDRATE);
    // wait for serial port to connect. Needed for Leonardo only
@@ -360,7 +371,7 @@ void oneColorAll(uint8_t r, uint8_t g, uint8_t b)
 
 void showLeds()
 {
-    LedController.showRGB((byte*)data.rgb, NUM_LEDS);
+    FastLED.show();
 }
 
 
