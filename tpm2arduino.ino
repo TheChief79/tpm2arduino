@@ -8,18 +8,16 @@
 /* LED und Arduino Variablen */
 /*==============================================================================*/
 
-#define NUM_LEDS             214                  // Number of LEDs
+#define NUM_LEDS             214                // Number of LEDs
 #define MAX_ARGS             10                 // Max Number of command arguments
 #define BAUDRATE             500000             // Baudrate
 #define SERIAL               Serial             // Serial port for communication
 #define SERIAL_DEBUG         Serial             // Serial port for debugging
+#define DATA_PIN             3                  // PIN where LEDs are connected/Used for TM1809/WS2811 chipsets, because they dont use SPI
+//#define CLOCK_PIN           4                  // used for some SPI chipsets, e.g. WS2801 
+#define BRIGHTNESS           100                // define global brightness 0..100
 
 //choose your LED chipset in void setup()
-
-#define DATA_PIN                  3             // PIN where LEDs are connected/Used for TM1809/WS2811 chipsets, because they dont use SPI
-//#define CLOCK_PIN                4               // used for some SPI chipsets, e.g. WS2801 
-#define BRIGHTNESS                100           // define global brightness 0..100
-
 
 /*==============================================================================*/
 /* TPM2 Variablen */
@@ -112,22 +110,22 @@ void setup()
    memset(data.rgb, 0, sizeof(struct CRGB) * NUM_LEDS); 
 
    // Uncomment one of the following lines for your leds arrangement.
-   // FastLED.addLeds<TM1803, DATA_PIN, RGB>(leds, NUM_LEDS);
-   // FastLED.addLeds<TM1804, DATA_PIN, RGB>(leds, NUM_LEDS);
-   // FastLED.addLeds<TM1809, DATA_PIN, RGB>(leds, NUM_LEDS);
-   // FastSPI_LED2.addLeds<WS2811, DATA_PIN, GRB>(leds+18, NUM_LEDS/3);
-   // FastLED.addLeds<WS2811, 8, RGB>(leds + 225, NUM_LEDS/4);
-   // FastLED.addLeds<WS2812, DATA_PIN, RGB>(leds, NUM_LEDS);
-   // FastLED.addLeds<WS2812B, DATA_PIN, RGB>(leds, NUM_LEDS);
-   // FastLED.addLeds<NEOPIXEL, DATA_PIN, RGB>(leds, NUM_LEDS);
-   // FastLED.addLeds<WS2811_400, DATA_PIN, RGB>(leds, NUM_LEDS);
-   // FastLED.addLeds<UCS1903, DATA_PIN, RGB>(leds, NUM_LEDS);
-   // FastLED.addLeds<WS2801, RGB>(leds, NUM_LEDS);
-   // FastLED.addLeds<SM16716, RGB>(leds, NUM_LEDS);
-   // FastLED.addLeds<LPD8806, RGB>(leds, NUM_LEDS);
-   // FastLED.addLeds<WS2801, DATA_PIN, CLOCK_PIN, RGB>(leds, NUM_LEDS);
-   // FastLED.addLeds<SM16716, DATA_PIN, CLOCK_PIN, RGB>(leds, NUM_LEDS);
-   // FastLED.addLeds<LPD8806, DATA_PIN, CLOCK_PIN, RGB>(leds, NUM_LEDS);
+   // FastLED.addLeds<TM1803, DATA_PIN, RGB>(data.rgb, NUM_LEDS);
+   // FastLED.addLeds<TM1804, DATA_PIN, RGB>(data.rgb, NUM_LEDS);
+   // FastLED.addLeds<TM1809, DATA_PIN, RGB>(data.rgb, NUM_LEDS);
+   // FastSPI_LED2.addLeds<WS2811, DATA_PIN, GRB>(data.rgb+18, NUM_LEDS/3);
+   // FastLED.addLeds<WS2811, 8, RGB>(data.rgb + 225, NUM_LEDS/4);
+   // FastLED.addLeds<WS2812, DATA_PIN, RGB>(data.rgb, NUM_LEDS);
+   // FastLED.addLeds<WS2812B, DATA_PIN, RGB>(data.rgb, NUM_LEDS);
+   // FastLED.addLeds<NEOPIXEL, DATA_PIN, RGB>(data.rgb, NUM_LEDS);
+   // FastLED.addLeds<WS2811_400, DATA_PIN, RGB>(data.rgb, NUM_LEDS);
+   // FastLED.addLeds<UCS1903, DATA_PIN, RGB>(data.rgb, NUM_LEDS);
+   // FastLED.addLeds<WS2801, RGB>(data.rgb, NUM_LEDS);
+   // FastLED.addLeds<SM16716, RGB>(data.rgb, NUM_LEDS);
+   // FastLED.addLeds<LPD8806, RGB>(data.rgb, NUM_LEDS);
+   // FastLED.addLeds<WS2801, DATA_PIN, CLOCK_PIN, RGB>(data.rgb, NUM_LEDS);
+   // FastLED.addLeds<SM16716, DATA_PIN, CLOCK_PIN, RGB>(data.rgb, NUM_LEDS);
+   // FastLED.addLeds<LPD8806, DATA_PIN, CLOCK_PIN, RGB>(data.rgb, NUM_LEDS);
    
    FastLED.addLeds<WS2811, DATA_PIN, GRB>(data.rgb, NUM_LEDS);
    FastLED.setBrightness(BRIGHTNESS);
