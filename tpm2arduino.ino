@@ -15,7 +15,7 @@
 #define SERIAL_DEBUG         Serial             // Serial port for debugging
 #define DATA_PIN             3                  // PIN where LEDs are connected/Used for TM1809/WS2811 chipsets, because they dont use SPI
 //#define CLOCK_PIN           4                  // used for some SPI chipsets, e.g. WS2801 
-#define BRIGHTNESS           100                // define global brightness 0..100
+#define BRIGHTNESS           255                // define global brightness 0..250
 
 //choose your LED chipset in void setup()
 
