@@ -1,4 +1,4 @@
-
+  
 #include <pt.h>
 #define FORCE_SOFTWARE_SPI
 #define FORCE_SOFTWARE_PINS
@@ -15,7 +15,7 @@
 #define SERIAL_DEBUG         Serial             // Serial port for debugging
 #define DATA_PIN             3                  // PIN where LEDs are connected/Used for TM1809/WS2811 chipsets, because they dont use SPI
 //#define CLOCK_PIN           4                  // used for some SPI chipsets, e.g. WS2801 
-#define BRIGHTNESS           255                // define global brightness 0..250
+#define BRIGHTNESS           255                // define global brightness 0..255
 
 //choose your LED chipset in void setup()
 
@@ -388,15 +388,13 @@ void playProgram()
       case  2: rainbow_fade(20);                       break;
       case  3: rainbow_loop(20);                       break;
       case  4: random_burst(20);                       break;
-      case  5: flicker(200,1);                         break;
+      case  5: flicker(200,255);                       break;
       case  6: colorBounce(200,50);                    break;
       case  7: pulse_oneColorAll(200,50,100,0);        break;
       case  8: pulse_oneColorAll(0,50,100,1);          break;
       case  9: police_light_strobo(50);                break;
       case 10: police_lightsALL(20);                   break;
       case 11: police_lightsONE(20);                   break;
-      /*case 12: sin_bright_wave(20,50);                 break;
-      case 13: wave(100);break;*/
       default: oneColorAll(0,0,0);        break;
    }
 }
@@ -461,13 +459,11 @@ void loopRGBPixel(int idelay) //OK
 void rainbow_fade(int idelay) { //OK //-FADE ALL LEDS THROUGH HSV RAINBOW
    static int ihue = -1;
    ihue++;
-   if (ihue >= 359) {
+   if (ihue >= 255) {
       ihue = 0;
    }
-   int thisColor[3];
-   hsv2rgb(ihue, 1, 1, thisColor);
    for(int idex = 0 ; idex < NUM_LEDS; idex++ ) {
-      setLedColor(idex,thisColor[0],thisColor[1],thisColor[2]); 
+      data.rgb[idex] = CHSV(ihue, 255, 255);
    }
    showLeds();
    effectDelay = idelay;
@@ -480,21 +476,18 @@ void rainbow_fade(int idelay) { //OK //-FADE ALL LEDS THROUGH HSV RAINBOW
 void rainbow_loop(int idelay) { //-LOOP HSV RAINBOW
    static double idex = 0;
    static double ihue = 0;
-   int icolor[3];  
-
-   double steps = (double)360/NUM_LEDS; 
+   double steps = (double)255/NUM_LEDS; 
    
    for(int led = 0 ; led < NUM_LEDS; led++ ) {
       ihue = led * steps + idex;
-      if (ihue >= 360) 
-         ihue -= 360;
+      if (ihue >= 255) 
+         ihue -= 255;
 
-      hsv2rgb(ihue, 1, 1, icolor);
-      setLedColor(led, icolor[0], icolor[1], icolor[2]); 
-      
+      data.rgb[led] = CHSV((int)ihue, 255, 255);
+
       if (led == 0)
          idex += steps;
-      if (idex >= 360) 
+      if (idex >= 255) 
          idex = 0;
    }  
    showLeds();
@@ -508,13 +501,12 @@ void rainbow_loop(int idelay) { //-LOOP HSV RAINBOW
 void random_burst(int idelay) { //-RANDOM INDEX/COLOR
    static int idex = 0;
    static int ihue = 0;
-   int icolor[3];  
 
    idex = random(0,NUM_LEDS-1);
-   ihue = random(0,359);
+   ihue = random(0,255);
 
-   hsv2rgb(ihue, 1, 1, icolor);
-   setLedColor(idex, icolor[0], icolor[1], icolor[2]);
+   data.rgb[idex] = CHSV(ihue, 255, 255);
+
    showLeds();
    effectDelay = idelay;
 }
@@ -523,23 +515,16 @@ void random_burst(int idelay) { //-RANDOM INDEX/COLOR
 /* Effect 5: Flicker effect - random flashing of all LEDs
 /*==============================================================================*/
 
-void flicker(int thishue, double thissat) {
-   int random_bright = random(0,100);
-   double ibright = (double)random_bright/100;
+void flicker(int thishue, int thissat) {
+   int ibright = random(0,255);
    int random_delay = random(10,100);
-//   int random_bool = random(0,random_bright);
-   int thisColor[3];
-
-  //if (random_bool < 10) {
-   hsv2rgb(thishue, thissat, ibright, thisColor);
 
    for(int i = 0 ; i < NUM_LEDS; i++ ) {
-      setLedColor(i, thisColor[0], thisColor[1], thisColor[2]);
+      data.rgb[i] = CHSV(thishue, thissat, ibright); 
    }
 
    showLeds();
    effectDelay = random_delay;
-   //}
 }
 
 /*==============================================================================*/
@@ -549,9 +534,6 @@ void flicker(int thishue, double thissat) {
 void colorBounce(int ihue, int idelay) { //-BOUNCE COLOR (SINGLE LED)
   static int bouncedirection = 0;
   static int idex = 0;
-  
-  int color[3];
-  hsv2rgb(ihue, 1, 1, color);
   
   if (bouncedirection == 0) {
     idex = idex + 1;
@@ -568,7 +550,7 @@ void colorBounce(int ihue, int idelay) { //-BOUNCE COLOR (SINGLE LED)
   }  
   for(int i = 0; i < NUM_LEDS; i++ ) {
     if (i == idex) {
-      setLedColor(i, color[0], color[1], color[2]);
+      data.rgb[i] = CHSV(ihue, 255, 255);
     }
     else {
       setLedColor(i, 0, 0, 0);
@@ -585,14 +567,14 @@ void colorBounce(int ihue, int idelay) { //-BOUNCE COLOR (SINGLE LED)
 void pulse_oneColorAll(int ahue, int idelay, int steps, int useSat) { //-PULSE BRIGHTNESS ON ALL LEDS TO ONE COLOR 
   static int bouncedirection = 0;
   static int idex = 0;
-  double isteps = (double)1/steps;
-  static double ival = 0;
+  int isteps = 255/steps;
+  static int ival = 0;
   
   static int xhue = 0;
   
   if (bouncedirection == 0) {
     ival += isteps;
-    if (ival >= 1) {
+    if (ival >= 255) {
       bouncedirection = 1;
     }
   }
@@ -600,18 +582,15 @@ void pulse_oneColorAll(int ahue, int idelay, int steps, int useSat) { //-PULSE B
     ival -= isteps;
     if (ival <= 0) {
       bouncedirection = 0;
-     xhue = random(0, 359);
+     xhue = random(0, 255);
     }         
   }  
 
-  int acolor[3];
-  if (useSat == 0)
-    hsv2rgb(xhue, 1, ival, acolor);
-  else
-    hsv2rgb(xhue, ival, 1, acolor);
-    
   for(int i = 0 ; i < NUM_LEDS; i++ ) {
-    setLedColor(i, acolor[0], acolor[1], acolor[2]);
+    if (useSat == 0)
+      data.rgb[i] = CHSV(xhue, 255, ival);
+    else
+      data.rgb[i] = CHSV(xhue, ival, 255);
   }
   showLeds();
   effectDelay = idelay;
@@ -707,188 +686,10 @@ void police_lightsONE(int idelay) { //-POLICE LIGHTS (TWO COLOR SINGLE LED)
     idex = 0;
   }
 }
-
-
-/*==============================================================================*/
-/* Effect 12: Sinus Wave on LEDs FIX
-/*==============================================================================*/
-
-
-void sin_bright_wave(int ahue, int idelay) {  
- int acolor[3];
- double tcount = 0.0;
- double ibright = 0.0;
- static double idex = 0.0;
- 
- for(int i = 0; i < NUM_LEDS; i++ ) {
-  
-   if (i == 0)
-     idex += 0.1;
-    tcount = tcount + .1 + idex;
-   if (idex > 3.14)
-      idex = 0; 
-   if (tcount > 3.14) 
-     tcount = 0.0;
-   
-   ibright = sin(tcount) + idex;
-   hsv2rgb(ahue, 1, ibright, acolor);
-   data.rgb[i].r = acolor[0]; data.rgb[i].g = acolor[1]; data.rgb[i].b = acolor[2];
- }
- showLeds();
- effectDelay = idelay;
-}           
-
-
-/*==============================================================================*/
-/* Effect 12: Wave on LEDs FIX
-/*==============================================================================*/
-           
-void wave(int idelay)           
-{
-  int wavesize = NUM_LEDS/8; //60
-  int waveheight = wavesize/2; //30
-  double steps = (double)1/waveheight; //0,0333333
-  double start = 0.00;
-  static double offset = 0.00;
-  int colors[3];
-  int dir = 1;
-  
-  for (int i = 0; i < NUM_LEDS; i++)
-  {
-      hsv2rgb(0, 1, start, colors);
-      setLedColor(i, colors[0], colors[1], colors[2]);
-      if (i == 0 && dir == 1)
-        start += offset;
-      else
-      if (i == 0 && dir == 0)
-        start -= offset;
-     
-      if (dir == 1)
-        start += steps;
-      if (dir == 0)
-        start -= steps;
-      if (start >= 1)
-        dir = 0;
-      if (start <= 0)
-        dir = 1;
-  }
-  /*offset += steps;
-  if (offset > 0.5 )
-    offset = 0;*/
-  showLeds();
-  effectDelay = idelay;
-}
-
                        
 /*==============================================================================*/
 /* Util func Effekte */
 /*==============================================================================*/
-
-//-CONVERT HSV VALUE TO RGB
-void hsv2rgb(double h, double s, double v, int colors[3])
-{
-   double rr = 0; 
-   double gg = 0; 
-   double bb = 0;
-   
-   int i = floor(h/60.0);
-   double f = h/60.0 - i;
-   double pv = v * (1 - s);
-   double qv = v * (1 - s * f);
-   double tv = v * (1 - s * (1-f));
-   
-   switch (i)
-   {
-      case 0:    // rojo dominante
-         rr = v;
-         gg = tv;
-         bb = pv;
-         break;
-
-      case 1:    // verde
-         rr = qv;
-         gg = v;
-         bb = pv;
-         break;
-
-      case 2: 
-         rr = pv;
-         gg = v;
-         bb = tv;
-         break;
-
-      case 3:    // azul
-         rr = pv;
-         gg = qv;
-         bb = v;
-         break;
-
-      case 4:
-         rr = tv;
-         gg = pv;
-         bb = v;
-         break;
-
-      case 5:    // rojo
-         rr = v;
-         gg = pv;
-         bb = qv;
-         break;
-   }
-
-   // set each component to a integer value between 0 and 255
-
-   colors[0] = minMax(255*rr, 0, 255);
-   colors[1] = minMax(255*gg, 0, 255);
-   colors[2] = minMax(255*bb, 0, 255);
-}
-
-void rgb2hsv(int r, int g, int b, double h, double s, double v)
-{
-   double minC, maxC, delta, rc, gc, bc;
-   rc = (double)r / 255.0;
-   gc = (double)g / 255.0;
-   bc = (double)b / 255.0;
-   maxC = max(rc, max(gc, bc));
-   minC = min(rc, min(gc, bc));
-   delta = maxC - minC;
-   v = maxC;
-
-   if (maxC != 0)
-      s = delta / maxC;
-   else
-      s = 0;
-
-   if (s == 0) 
-   {
-      h = 0; 
-   }
-   else 
-   {
-      if (rc == maxC)
-         h = (gc - bc) / delta;
-      else if (gc == maxC)
-         h = 2 + (bc - rc) / delta;
-      else if (bc == maxC)
-         h = 4 + (rc - gc) / delta;
-      
-      h *= 60.0;
-
-      if (h < 0)
-         h += 360.0;
-   }
-}
-
-int minMax(int x, int min, int max)
-{
-   if (x < min)
-      return min;
-   
-   if (max < x)
-      return max;
-   
-   return x;
-}
 
 //-FIND INDEX OF ANTIPODAL OPPOSITE LED
 int antipodal_index(int i) {
