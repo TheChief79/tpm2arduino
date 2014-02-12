@@ -8,3 +8,4 @@ Requirements
 ============
 
 protohreads library installed in the Arduino libraries directory (http://dunkels.com/adam/pt/download.html)
+FastLED library installed in the Arduino libraries directory (https://github.com/FastLED/FastLED)

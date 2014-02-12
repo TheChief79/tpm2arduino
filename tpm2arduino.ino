@@ -2,7 +2,7 @@
 #include <pt.h>
 #define FORCE_SOFTWARE_SPI
 #define FORCE_SOFTWARE_PINS
-#include "FastSPI_LED2.h"
+#include <FastSPI_LED2.h>
 
 /*==============================================================================*/
 /* LED und Arduino Variablen */
