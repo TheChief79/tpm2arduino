@@ -1,0 +1,60 @@
+Index: src/util/serialport.h
+===================================================================
+--- src/util/serialport.h	(Revision 478)
++++ src/util/serialport.h	(Arbeitskopie)
+@@ -38,6 +38,7 @@
+     void Close();
+     int  Write(uint8_t* data, int len);
+     int  Read(uint8_t* data, int len, int64_t usecs = -1);
++    int  ReadAck();
+     int  IntToRate(int baudrate);
+     bool IsOpen() { return m_fd != -1; }
+     void PrintToStdOut(bool tostdout) { m_tostdout = tostdout; }
+Index: src/util/serialport.cpp
+===================================================================
+--- src/util/serialport.cpp	(Revision 478)
++++ src/util/serialport.cpp	(Arbeitskopie)
+@@ -85,6 +85,30 @@
+   return byteswritten;
+ }
+ 
++int CSerialPort::ReadAck()
++{
++   fd_set readfs;
++   timeval tv;
++   unsigned char c;
++
++   tv.tv_sec = 0;
++   tv.tv_usec = 100000;
++   
++   FD_ZERO(&readfs);
++   FD_SET(m_fd, &readfs);
++   select(m_fd+1, &readfs, 0, 0, &tv);
++
++   if (FD_ISSET(m_fd, &readfs))
++   {
++      while (read(m_fd, &c, 1) > 0)
++      {
++	if (m_tostdout)
++	    printf("%02X ", c);
++      }
++      return 0;
++   }
++}
++
+ int CSerialPort::Read(uint8_t* data, int len, int64_t usecs /*= -1*/)
+ {
+   fd_set port;
+Index: src/device/devicers232.cpp
+===================================================================
+--- src/device/devicers232.cpp	(Revision 478)
++++ src/device/devicers232.cpp	(Arbeitskopie)
+@@ -134,7 +134,7 @@
+     LogError("%s: %s", m_name.c_str(), m_serialport.GetError().c_str());
+     return false;
+   }
+-
++  m_serialport.ReadAck();
+   m_timer.Wait();
+   
+   return true;
