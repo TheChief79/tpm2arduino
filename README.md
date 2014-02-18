@@ -20,6 +20,7 @@ BOBLIGHT
 
 To get boblight running well, apply boblight.patch with patch -p0 <boblight.patch in boblight-source directory and setup your boblight.conf.
 
+```
 [device]
 name ambilight
 output /dev/ttyUSB0
@@ -30,5 +31,6 @@ rate 500000
 prefix C9 DA 03 00
 postfix 36
 debug off
+```
 
 03 00 in prefix means 768 channels. With 642 channels this value would be 02 82.
