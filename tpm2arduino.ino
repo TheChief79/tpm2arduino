@@ -333,7 +333,6 @@ void parsePacket()
    }
 
    SERIAL.write(tpm2Ack);
-   SERIAL.flush();
    resetVars();
    data.pos = -1;
 }
