@@ -34,3 +34,5 @@ debug off
 ```
 
 03 00 in prefix means 768 channels. With 642 channels this value would be 02 82.
+
+You can use an online HEX Converter to find out the value: http://www.binaryhexconverter.com/decimal-to-hex-converter
