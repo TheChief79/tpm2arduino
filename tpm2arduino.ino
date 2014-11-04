@@ -1,19 +1,17 @@
   
 #include <pt.h>
-#define FORCE_SOFTWARE_SPI
-#define FORCE_SOFTWARE_PINS
-#include <FastSPI_LED2.h>
+#include "FastLED.h"
 
 /*==============================================================================*/
 /* LED und Arduino Variablen */
 /*==============================================================================*/
 
-#define NUM_LEDS             214                // Number of LEDs
+#define NUM_LEDS             200                // Number of LEDs
 #define MAX_ARGS             10                 // Max Number of command arguments
-#define BAUDRATE             500000             // Baudrate
-#define SERIAL               Serial             // Serial port for communication
+#define BAUDRATE             115200             // Baudrate
+#define SERIAL               Serial1            // Serial port for communication
 #define SERIAL_DEBUG         Serial             // Serial port for debugging
-#define DATA_PIN             3                  // PIN where LEDs are connected/Used for TM1809/WS2811 chipsets, because they dont use SPI
+#define DATA_PIN             6                  // PIN where LEDs are connected/Used for TM1809/WS2811 chipsets, because they dont use SPI
 //#define CLOCK_PIN           4                  // used for some SPI chipsets, e.g. WS2801 
 #define BRIGHTNESS           255                // define global brightness 0..255
 
@@ -106,7 +104,8 @@ int freeRam()
 
 void setup()
 {
-     
+   SERIAL.begin(BAUDRATE);
+   delay(1000);  
    memset(data.rgb, 0, sizeof(struct CRGB) * NUM_LEDS); 
 
    // Uncomment one of the following lines for your leds arrangement.
@@ -127,21 +126,20 @@ void setup()
    // FastLED.addLeds<SM16716, DATA_PIN, CLOCK_PIN, RGB>(data.rgb, NUM_LEDS);
    // FastLED.addLeds<LPD8806, DATA_PIN, CLOCK_PIN, RGB>(data.rgb, NUM_LEDS);
    
-   FastLED.addLeds<WS2811, DATA_PIN, GRB>(data.rgb, NUM_LEDS);
+   FastLED.addLeds<WS2811, DATA_PIN, RGB>(data.rgb, NUM_LEDS);
    FastLED.setBrightness(BRIGHTNESS);
    
    oneColorAll(10,10,10);
 #ifdef DEBUG
    SERIAL_DEBUG.begin(BAUDRATE);
    // wait for serial port to connect. Needed for Leonardo only
-   while (!Serial)
+   while (!SERIAL_DEBUG)
       delay(1);
    SERIAL_DEBUG.println("Setup done");
 #endif
-   SERIAL.begin(BAUDRATE);
    memset(args, 0, MAX_ARGS);
-   PT_INIT(&pt1);
    resetVars();
+   PT_INIT(&pt1);
 }
 
 /*==============================================================================*/
@@ -173,7 +171,7 @@ void loop()
    if (SERIAL.available() > 0)
    {
       if (mode != mCommunication)
-      { 
+      {
          debug("switching to communication mode");
          mode = mCommunication;
          resetVars();
@@ -189,9 +187,9 @@ void loop()
          debug("switching to prg mode, ignoring ", data.pos);
          mode = mProgram;
          resetVars();
-
       }
-      playProgramThread(&pt1);
+      else
+        playProgramThread(&pt1);
    }
   }
 }
