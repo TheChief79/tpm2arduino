@@ -6,10 +6,10 @@
 /* LED und Arduino Variablen */
 /*==============================================================================*/
 
-#define NUM_LEDS             200                // Number of LEDs
+#define NUM_LEDS             40                // Number of LEDs
 #define MAX_ARGS             10                 // Max Number of command arguments
-#define BAUDRATE             115200             // Baudrate
-#define SERIAL               Serial1            // Serial port for communication
+#define BAUDRATE             500000             // Baudrate
+#define SERIAL               Serial            // Serial port for communication
 #define SERIAL_DEBUG         Serial             // Serial port for debugging
 #define DATA_PIN             6                  // PIN where LEDs are connected/Used for TM1809/WS2811 chipsets, because they dont use SPI
 //#define CLOCK_PIN           4                  // used for some SPI chipsets, e.g. WS2801 
@@ -129,7 +129,7 @@ void setup()
    FastLED.addLeds<WS2811, DATA_PIN, RGB>(data.rgb, NUM_LEDS);
    FastLED.setBrightness(BRIGHTNESS);
    
-   oneColorAll(10,10,10);
+   oneColorAll(255,0,0);
 #ifdef DEBUG
    SERIAL_DEBUG.begin(BAUDRATE);
    // wait for serial port to connect. Needed for Leonardo only
