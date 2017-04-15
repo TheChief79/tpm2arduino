@@ -129,7 +129,7 @@ void setup()
    FastLED.addLeds<WS2811, DATA_PIN, RGB>(data.rgb, NUM_LEDS);
    FastLED.setBrightness(BRIGHTNESS);
    
-   oneColorAll(255,0,0);
+   oneColorAll(0,0,0);
 #ifdef DEBUG
    SERIAL_DEBUG.begin(BAUDRATE);
    // wait for serial port to connect. Needed for Leonardo only
@@ -392,7 +392,7 @@ void playProgram()
       case  9: police_light_strobo(50);                break;
       case 10: police_lightsALL(20);                   break;
       case 11: police_lightsONE(20);                   break;
-      default: oneColorAll(0,0,0);        break;
+      default: oneColorAll(0,0,0);        	       break;
    }
 }
 
